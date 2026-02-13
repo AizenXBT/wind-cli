@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 
 const axios = require('axios');
-const yargs = require('yargs/yargs');
-const { hideBin } = require('yargs/helpers');
 
 const API_KEY = process.env.WEATHER_API_KEY || 'YOUR_API_KEY_HERE';
 const BASE_URL = 'http://api.weatherapi.com/v1';
@@ -76,6 +74,30 @@ function displayForecast(forecastData, format) {
   });
 }
 
+function parseArgs(args) {
+  const options = {
+    city: null,
+    format: 'celsius',
+    forecast: false,
+    help: false,
+  };
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === '--city' || arg === '-c') {
+      options.city = args[++i];
+    } else if (arg === '--format' || arg === '-f') {
+      options.format = args[++i];
+    } else if (arg === '--forecast' || arg === '-F') {
+      options.forecast = true;
+    } else if (arg === '--help' || arg === '-h') {
+      options.help = true;
+    }
+  }
+
+  return options;
+}
+
 async function main() {
   showAsciiArt();
 
@@ -87,33 +109,22 @@ async function main() {
     process.exit(1);
   }
 
-  const argv = yargs(hideBin(process.argv))
-    .usage('Usage: $0 [options]')
-    .option('city', {
-      alias: 'c',
-      describe: 'City name to get weather for',
-      type: 'string',
-    })
-    .option('format', {
-      alias: 'f',
-      describe: 'Output format (celsius, fahrenheit)',
-      type: 'string',
-      default: 'celsius',
-    })
-    .option('forecast', {
-      alias: 'F',
-      describe: 'Get 3-day weather forecast',
-      type: 'boolean',
-      default: false,
-    })
-    .check((argv) => {
-      if (!argv.city) {
-        throw new Error('City is required. Use --city or -c to specify a city name.');
-      }
-      return true;
-    })
-    .help()
-    .argv;
+  const argv = parseArgs(process.argv.slice(2));
+
+  if (argv.help) {
+    console.log('Usage: weather [options]');
+    console.log('Options:');
+    console.log('  -c, --city <city>      City name to get weather for');
+    console.log('  -f, --format <format>  Output format (celsius, fahrenheit)');
+    console.log('  -F, --forecast         Get 3-day weather forecast');
+    console.log('  -h, --help             Display this help message');
+    process.exit(0);
+  }
+
+  if (!argv.city) {
+    console.error('City is required. Use --city or -c to specify a city name.');
+    process.exit(1);
+  }
 
   const commonParams = { key: API_KEY, q: argv.city, aqi: 'no' };
 
@@ -139,4 +150,5 @@ module.exports = {
   displayCurrentWeather,
   displayForecast,
   main,
+  parseArgs,
 };
