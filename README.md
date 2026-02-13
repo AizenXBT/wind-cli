@@ -1,4 +1,4 @@
-# Weather CLI App
+# VEAD, a Weather CLI App
 
 A simple command-line interface for checking weather conditions worldwide.
 
@@ -11,7 +11,7 @@ A simple command-line interface for checking weather conditions worldwide.
 
 ## Installation
 
-1. Clone or download this repository
+1. Clone or download VEAD
 2. Install dependencies:
    ```bash
    yarn install
@@ -19,7 +19,7 @@ A simple command-line interface for checking weather conditions worldwide.
 
 ## Setup
 
-To use the application, you need to get a free API key from [WeatherAPI](https://www.weatherapi.com/):
+To use VEAD, you need to get a free API key from [WeatherAPI](https://www.weatherapi.com/):
 
 1. Visit [https://www.weatherapi.com/signup.aspx](https://www.weatherapi.com/signup.aspx) and create a free account
 2. Get your API key from [https://www.weatherapi.com/my/](https://www.weatherapi.com/my/)
