@@ -111,9 +111,8 @@ async function main() {
   if (!API_KEY || API_KEY === 'YOUR_API_KEY_HERE') {
     console.log('⚠️  Warning: No API key found. Please sign up at https://www.weatherapi.com/ and set your API key.');
     console.log('Sign up for a free account at: https://www.weatherapi.com/my/');
-    console.log('Then set the environment variable: export WEATHER_API_KEY="your_api_key"
-
-');
+    console.log('Then set the environment variable: export WEATHER_API_KEY="your_api_key"');
+    console.log('');
   }
 
   if (argv.forecast) {
