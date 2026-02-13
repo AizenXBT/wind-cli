@@ -126,7 +126,17 @@ async function main() {
   }
 }
 
-main().catch(error => {
-  console.error('An unexpected error occurred:', error.message);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch(error => {
+    console.error('An unexpected error occurred:', error.message);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  handleApiError,
+  getWeatherData,
+  displayCurrentWeather,
+  displayForecast,
+  main,
+};
