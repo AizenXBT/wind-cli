@@ -1,8 +1,22 @@
 {
   "name": "wind-cli",
   "version": "1.0.0",
+  "description": "A command-line weather application",
   "main": "index.js",
+  "bin": {
+    "weather": "./bin/weather.js"
+  },
+  "scripts": {
+    "start": "node ./bin/weather.js",
+    "weather": "node ./bin/weather.js"
+  },
   "repository": "https://github.com/AizenXBT/wind-cli.git",
+  "keywords": [
+    "weather",
+    "cli",
+    "command-line",
+    "terminal"
+  ],
   "author": "DavidNzube101 <davidnzube2007@outlook.com>",
   "license": "MIT",
   "dependencies": {
