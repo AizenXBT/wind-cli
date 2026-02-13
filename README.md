@@ -62,7 +62,3 @@ Get forecast in Fahrenheit format:
 ```bash
 node bin/weather.js --city "Sydney" --forecast --format fahrenheit
 ```
-
-## License
-
-MIT
