@@ -4,9 +4,9 @@ const axios = require('axios');
 const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
 
-// OpenWeatherMap API configuration - users need to get their own API key
-const API_KEY = process.env.OPENWEATHER_API_KEY || 'YOUR_API_KEY_HERE';
-const BASE_URL = 'https://api.openweathermap.org/data/2.5';
+// WeatherAPI configuration - users need to get their own API key
+const API_KEY = process.env.WEATHER_API_KEY || 'YOUR_API_KEY_HERE';
+const BASE_URL = 'http://api.weatherapi.com/v1';
 
 // Configure yargs for command line interface
 const argv = yargs(hideBin(process.argv))
@@ -19,7 +19,7 @@ const argv = yargs(hideBin(process.argv))
   })
   .option('format', {
     alias: 'f',
-    describe: 'Output format (celsius, fahrenheit, kelvin)',
+    describe: 'Output format (celsius, fahrenheit)',
     type: 'string',
     default: 'celsius'
   })
@@ -32,44 +32,35 @@ const argv = yargs(hideBin(process.argv))
   .help()
   .argv;
 
-// Function to convert temperature based on user preference
-function convertTemp(kelvin, format) {
-  switch(format.toLowerCase()) {
-    case 'fahrenheit':
-      return ((kelvin - 273.15) * 9/5 + 32).toFixed(1);
-    case 'celsius':
-      return (kelvin - 273.15).toFixed(1);
-    case 'kelvin':
-    default:
-      return kelvin.toFixed(2);
-  }
-}
-
 // Function to get current weather
 async function getCurrentWeather(city) {
   try {
-    const response = await axios.get(`${BASE_URL}/weather`, {
+    const response = await axios.get(`${BASE_URL}/current.json`, {
       params: {
+        key: API_KEY,
         q: city,
-       appid: API_KEY
+        aqi: 'no'
       }
     });
 
     const weather = response.data;
-    const temp = convertTemp(weather.main.temp, argv.format);
-    const feelsLike = convertTemp(weather.main.feels_like, argv.format);
+    const temp = argv.format === 'fahrenheit' ? weather.current.temp_f : weather.current.temp_c;
+    const feelsLike = argv.format === 'fahrenheit' ? weather.current.feelslike_f : weather.current.feelslike_c;
     
-    console.log(`\n🌤️  Current Weather in ${weather.name}, ${weather.sys.country}:`);
+    console.log(`
+🌤️  Current Weather in ${weather.location.name}, ${weather.location.country}:`);
     console.log(`Temperature: ${temp}° ${argv.format.toUpperCase()}`);
     console.log(`Feels Like: ${feelsLike}° ${argv.format.toUpperCase()}`);
-    console.log(`Description: ${weather.weather[0].main} - ${weather.weather[0].description}`);
-    console.log(`Humidity: ${weather.main.humidity}%`);
-    console.log(`Wind Speed: ${weather.wind.speed} m/s`);
+    console.log(`Description: ${weather.current.condition.text}`);
+    console.log(`Humidity: ${weather.current.humidity}%`);
+    console.log(`Wind Speed: ${weather.current.wind_kph} km/h`);
+    console.log(`Pressure: ${weather.current.pressure_mb} mb`);
+    console.log(`UV Index: ${weather.current.uv}`);
   } catch (error) {
-    if (error.response && error.response.status === 404) {
-      console.error(\`❌ City \"${argv.city}\" not found. Please check the spelling and try again.\`);
-    } else if (error.response && error.response.status === 401) {
-      console.error('❌ Invalid API key. Please set your OpenWeatherMap API key in the OPENWEATHER_API_KEY environment variable.');
+    if (error.response && error.response.status === 400) {
+      console.error(`❌ City "${argv.city}" not found. Please check the spelling and try again.`);
+    } else if (error.response && error.response.status === 403) {
+      console.error('❌ Invalid API key. Please set your WeatherAPI key in the WEATHER_API_KEY environment variable.');
     } else {
       console.error('❌ Error fetching weather data:', error.message);
     }
@@ -77,33 +68,37 @@ async function getCurrentWeather(city) {
   }
 }
 
-// Function to get 5-day forecast
+// Function to get 3-day forecast (WeatherAPI free tier allows up to 3 days)
 async function getForecast(city) {
   try {
-    const response = await axios.get(`${BASE_URL}/forecast`, {
+    const response = await axios.get(`${BASE_URL}/forecast.json`, {
       params: {
+        key: API_KEY,
         q: city,
-        appid: API_KEY
+        days: 3,
+        aqi: 'no'
       }
     });
 
-    const forecasts = response.data.list.slice(0, 5); // Get next 5 timestamps
+    const forecasts = response.data.forecast.forecastday;
     
-    console.log(\`\n📅 5-Day Forecast for ${response.data.city.name}, ${response.data.city.country}:\`);
+    console.log(`
+📅 3-Day Forecast for ${response.data.location.name}, ${response.data.location.country}:`);
     console.log('--------------------------------------------------');
     
-    forecasts.forEach((item, index) => {
-      const date = new Date(item.dt * 1000).toLocaleDateString();
-      const time = new Date(item.dt * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-      const temp = convertTemp(item.main.temp, argv.format);
+    forecasts.forEach((day) => {
+      const date = new Date(day.date).toLocaleDateString();
+      const maxTemp = argv.format === 'fahrenheit' ? day.day.maxtemp_f : day.day.maxtemp_c;
+      const minTemp = argv.format === 'fahrenheit' ? day.day.mintemp_f : day.day.mintemp_c;
+      const condition = day.day.condition.text;
       
-      console.log(\`${date} ${time}: ${temp}° ${argv.format.toUpperCase()} - ${item.weather[0].main} (\${item.weather[0].description})\`);
+      console.log(`${date}: Max ${maxTemp}°, Min ${minTemp}° - ${condition}`);
     });
   } catch (error) {
-    if (error.response && error.response.status === 404) {
-      console.error(\`❌ City \"${argv.city}\" not found. Please check the spelling and try again.\`);
-    } else if (error.response && error.response.status === 401) {
-      console.error('❌ Invalid API key. Please set your OpenWeatherMap API key in the OPENWEATHER_API_KEY environment variable.');
+    if (error.response && error.response.status === 400) {
+      console.error(`❌ City "${argv.city}" not found. Please check the spelling and try again.`);
+    } else if (error.response && error.response.status === 403) {
+      console.error('❌ Invalid API key. Please set your WeatherAPI key in the WEATHER_API_KEY environment variable.');
     } else {
       console.error('❌ Error fetching forecast data:', error.message);
     }
@@ -114,8 +109,11 @@ async function getForecast(city) {
 // Main execution
 async function main() {
   if (!API_KEY || API_KEY === 'YOUR_API_KEY_HERE') {
-    console.log('⚠️  Warning: No API key found. Please sign up at https://openweathermap.org/api and set your API key.');
-    console.log('Set it as an environment variable: export OPENWEATHER_API_KEY=\"your_api_key\"\n');
+    console.log('⚠️  Warning: No API key found. Please sign up at https://www.weatherapi.com/ and set your API key.');
+    console.log('Sign up for a free account at: https://www.weatherapi.com/my/');
+    console.log('Then set the environment variable: export WEATHER_API_KEY="your_api_key"
+
+');
   }
 
   if (argv.forecast) {
