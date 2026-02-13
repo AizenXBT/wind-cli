@@ -2,7 +2,7 @@
 
 ![VEAD](public/vead-screenschot.png)
 
-A simple command-line interface for checking weather conditions worldwide.
+A simple cli for checking weather conditions worldwide.
 
 ## Features
 
