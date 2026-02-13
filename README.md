@@ -1,5 +1,7 @@
 # VEAD, a Weather CLI App
 
+![VEAD](public/vead-screenschot.png)
+
 A simple command-line interface for checking weather conditions worldwide.
 
 ## Features
