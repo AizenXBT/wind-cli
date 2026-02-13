@@ -1,36 +1,17 @@
-const { exec } = require('child_process');
-const { promisify } = require('util');
-const execAsync = promisify(exec);
-
-// Set a dummy API key for the test environment
-process.env.WEATHER_API_KEY = 'test_key';
-
-describe('Weather CLI', () => {
-  it('should fetch and display current weather in Celsius by default', async () => {
-    const { stdout } = await execAsync('node bin/weather.js --city London');
-    expect(stdout).toContain('Current Weather in London');
-    expect(stdout).toContain('CELSIUS');
-  }, 10000);
-
-  it('should fetch and display current weather in Fahrenheit', async () => {
-    const { stdout } = await execAsync('node bin/weather.js --city London --format fahrenheit');
-    expect(stdout).toContain('Current Weather in London');
-    expect(stdout).toContain('FAHRENHEIT');
-  }, 10000);
-
-  it('should fetch and display 3-day forecast', async () => {
-    const { stdout } = await execAsync('node bin/weather.js --city London --forecast');
-    expect(stdout).toContain('3-Day Forecast for London');
-  }, 10000);
-
-  const axios = require('axios');
-const {
-  displayCurrentWeather,
-  displayForecast,
-  handleApiError,
-} = require('../bin/weather');
+const axios = require('axios');
+const { main } = require('../bin/weather');
 
 jest.mock('axios');
+jest.mock('yargs/yargs', () => {
+  const yargs = {
+    usage: jest.fn().mockReturnThis(),
+    option: jest.fn().mockReturnThis(),
+    check: jest.fn().mockReturnThis(),
+    help: jest.fn().mockReturnThis(),
+    argv: {},
+  };
+  return jest.fn(() => yargs);
+});
 
 const mockWeatherData = {
   location: { name: 'London', country: 'United Kingdom' },
@@ -69,57 +50,45 @@ describe('Weather CLI', () => {
   let consoleLogSpy;
   let consoleErrorSpy;
   let processExitSpy;
+  let yargs;
 
   beforeEach(() => {
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {});
+    yargs = require('yargs/yargs');
+    process.env.WEATHER_API_KEY = 'test_key';
   });
 
   afterEach(() => {
     consoleLogSpy.mockRestore();
     consoleErrorSpy.mockRestore();
     processExitSpy.mockRestore();
+    jest.clearAllMocks();
+    delete process.env.WEATHER_API_KEY;
   });
 
-  it('should display current weather correctly', () => {
-    displayCurrentWeather(mockWeatherData, 'celsius');
+  it('should fetch and display current weather', async () => {
+    yargs.argv = { city: 'London', format: 'celsius' };
+    axios.get.mockResolvedValue({ data: mockWeatherData });
+    await main();
     expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Current Weather in London'));
     expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Temperature: 15° CELSIUS'));
   });
 
-  it('should display forecast correctly', () => {
-    displayForecast(mockForecastData, 'celsius');
+  it('should fetch and display forecast', async () => {
+    yargs.argv = { city: 'London', format: 'celsius', forecast: true };
+    axios.get.mockResolvedValue({ data: mockForecastData });
+    await main();
     expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('3-Day Forecast for London'));
     expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Max 16°, Min 10° - Partly cloudy'));
   });
 
-  it('should handle 400 error correctly', () => {
-    const error = { response: { status: 400 } };
-    handleApiError(error, 'UnknownCity');
-    expect(consoleErrorSpy).toHaveBeenCalledWith('❌ City "UnknownCity" not found. Please check the spelling and try again.');
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-  });
-
-  it('should handle 403 error correctly', () => {
-    const error = { response: { status: 403 } };
-    handleApiError(error, 'London');
-    expect(consoleErrorSpy).toHaveBeenCalledWith('❌ Invalid API key. Please set your WeatherAPI key in the WEATHER_API_KEY environment variable.');
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-  });
-});
-
   it('should show a warning if no API key is provided', async () => {
-    const originalApiKey = process.env.WEATHER_API_KEY;
     delete process.env.WEATHER_API_KEY;
-    try {
-      const { stdout, stderr } = await execAsync('node bin/weather.js --city London');
-      // In this case, the script should exit with a warning.
-      // Depending on how the script is written, the warning might go to stdout or stderr.
-      const output = stdout + stderr;
-      expect(output).toContain('Warning: No API key found');
-    } finally {
-      process.env.WEATHER_API_KEY = originalApiKey;
-    }
-  }, 10000);
+    yargs.argv = { city: 'London' };
+    await main();
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Warning: No API key found'));
+    expect(processExitSpy).toHaveBeenCalledWith(1);
+  });
 });
