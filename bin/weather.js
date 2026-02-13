@@ -4,6 +4,24 @@ const axios = require('axios');
 const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
 
+// Display ASCII art
+function showAsciiArt() {
+  const asciiArt = `
+    ██╗   ██╗███████╗ █████╗ ██████╗ 
+    ██║   ██║██╔════╝██╔══██╗██╔══██╗
+    ██║   ██║█████╗  ███████║██║  ██║
+    ╚██╗ ██╔╝██╔══╝  ██╔══██║██║  ██║
+     ╚████╔╝ ███████╗██║  ██║██████╔╝
+      ╚═══╝  ╚══════╝╚═╝  ╚═╝╚═════╝ 
+             CLI Weather App
+
+  `;
+  console.log(asciiArt);
+}
+
+// Show ASCII art immediately when the script runs
+showAsciiArt();
+
 // WeatherAPI configuration - users need to get their own API key
 const API_KEY = process.env.WEATHER_API_KEY || 'YOUR_API_KEY_HERE';
 const BASE_URL = 'http://api.weatherapi.com/v1';
@@ -15,7 +33,7 @@ const argv = yargs(hideBin(process.argv))
     alias: 'c',
     describe: 'City name to get weather for',
     type: 'string',
-    demandOption: true
+    demandOption: false // Making it not required so help can show properly
   })
   .option('format', {
     alias: 'f',
@@ -28,6 +46,12 @@ const argv = yargs(hideBin(process.argv))
     describe: 'Get 5-day weather forecast',
     type: 'boolean',
     default: false
+  })
+  .check((argv) => {
+    if (!argv.city && !argv.help) {
+      throw new Error('City is required. Use --city or -c to specify a city name.');
+    }
+    return true;
   })
   .help()
   .argv;
@@ -122,5 +146,7 @@ async function main() {
   }
 }
 
-// Run the application
-main();
+// Run the application if a city is provided
+if (argv.city) {
+  main();
+}
